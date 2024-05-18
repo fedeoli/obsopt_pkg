@@ -37,9 +37,9 @@ tend = params_sim.time(end);
 params_init = @params_battery_calce;
 params_update = @params_update_battery_tushar;
 model = @model_battery_calce;
-model_reference = @model_battery_calce;
+% model_reference = @model_battery_calce;
 measure = @measure_battery_tushar;
-measure_reference = @measure_battery_tushar;
+% measure_reference = @measure_battery_tushar;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%% filters %%%%
@@ -61,6 +61,8 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_u
 %%%% define arrival cost %%%%%
 terminal_states = params.opt_vars;
 terminal_weights = 1e0*ones(size(terminal_states));
+% SOC%
+% terminal_weights([1]) = 100;
 % OCV %
 % terminal_weights([3 7 11]) = 1;
 % R0 %
@@ -74,7 +76,7 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [4 80 2 1 10 params.OutDim_compare], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...

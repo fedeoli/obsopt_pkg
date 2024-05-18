@@ -117,7 +117,4 @@ function x_out = gen_meas(params,x,Npoint,perc,sigma)
     x_out(4,:) = x_out(4,I);
     x_out(5,:) = x_out(5,I);
     x_out(6,:) = x_out(6,I);
-        
-        
-       
 end

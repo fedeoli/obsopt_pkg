@@ -37,8 +37,8 @@ function params = params_battery_calce(params_sim)
     params.Temperature = 313.15;
 
     % initial SOC
-    x10 = 0.4;
-    x20 = 0.01;    
+    x10 = 0.5;
+    x20 = 0.05;    
     
     params.eps = 1;        
     
@@ -89,7 +89,7 @@ function params = params_battery_calce(params_sim)
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
     params.plot_vars = 1:3;
-    params.plot_params = [4:6];%[7:14];
+    params.plot_params = [4:22];%[7:14];
     params.multi_traj_var = [1:2];
 
     % add stuff

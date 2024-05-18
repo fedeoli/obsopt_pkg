@@ -31,7 +31,7 @@ function [final_input_output_signal_data, simout_struct] = data_loader(input_out
     % Calculate SOC for each time step
     soc  = 1- (extracted_data.Discharge_Capacity_Ah_ - (extracted_data.Charge_Capacity_Ah_ - extracted_data.Charge_Capacity_Ah_(1)))/capacity;
     
-    % Add the SOC column to your data table
+    % Add the SOC column to data table
     final_input_output_signal_data.SOC = soc;
     ECM_soc = timeseries(soc, final_input_output_signal_data.Step_Time_s_, 'Name','ECM_soc');
 

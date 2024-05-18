@@ -37,7 +37,7 @@ function params = params_battery_tushar(params_sim)
     params.Temperature = 313.15;
 
     % initial SOC
-    x10 = 0.8;
+    x10 = 0.5;
     x20 = 0.01;    
     
     params.eps = 1;        

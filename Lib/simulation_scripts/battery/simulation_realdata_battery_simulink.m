@@ -17,7 +17,7 @@ params_sim = params;
 clear params
 
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 20;
+Nw = 30;
 Nts = 1;
 
 % noise
@@ -32,7 +32,7 @@ Ts = params_sim.Ts;
 t0 = params_sim.time(1);
 tend = params_sim.time(end);
 % uncomment to test the MHE with a single optimisation step
-% tend = 1*(Nw*Nts-1)*Ts;
+% tend = 10*(Nw*Nts-1)*Ts;
 
 %%%%%% general functions
 params_init = @params_battery_tushar;

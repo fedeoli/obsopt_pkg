@@ -24,9 +24,15 @@ function params = params_battery_simulink_calce
     % input_data = load('data/ECM_parameters_updated.mat');
     input_data.OCV = transpose(final_soc_ocv.OCV);
     input_data.SOC = transpose(final_soc_ocv.SOC);
-    input_data.R0 = ones(size(input_data.OCV)) * 0.015;
-    input_data.R1 = ones(size(input_data.OCV)) * 0.0760;
-    input_data.C1 = ones(size(input_data.OCV)) * 3000;
+    
+    input_data.R0 = [0.015,0.014167,0.013333,0.0125,0.011667,0.010833,0.010833,0.010833,0.010833,0.010833,0.01];
+    input_data.R1 = [0.024,0.022,0.02,0.018,0.016,0.014,0.014,0.014,0.014,0.014,0.008];
+    input_data.C1 = [10000,9000,8000,7000,6000,5000,5000,5000,5000,5000,2500];
+    
+    % R0_values = [0.089000,0.076597,0.072164,0.071013,0.070835,0.070937,0.071477,0.072694,0.074148,0.073950,0.068000];
+    % R1_values = [0.002700,0.023089,0.016769,0.012580,0.017430,0.025575,0.027914,0.021274,0.017695,0.053725,0.199700];
+    % C1_values = [1877.260,1257.901,933.547,914.623,1022.945,1041.227,862.591,640.071,936.119,2872.117,8277.880];
+
     params.input_data = input_data;
 
     % time
