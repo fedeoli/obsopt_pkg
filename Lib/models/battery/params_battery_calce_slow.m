@@ -13,7 +13,7 @@ function params = params_battery_calce_slow(params_sim)
         
     % SETUP THE EXPERIMENT  - Battery Capacity (converting Ampere-hour to Ampere-second)
     params.InputAmplitude = -1;
-    params.C_n_h = 2.0027*abs(params.InputAmplitude);
+    params.C_n_h = 2.0*abs(params.InputAmplitude);
     params.C_n = params.C_n_h * 3600;                 
 
     %%% system parameters %%%
@@ -29,7 +29,7 @@ function params = params_battery_calce_slow(params_sim)
     params.eta = 1;  
 
     % noise characteristics
-    noise = 1;
+    noise = 0;
     params.percNoise = noise*5e-2;
     params.NoisePwr = noise*5e-3;
 
@@ -37,8 +37,8 @@ function params = params_battery_calce_slow(params_sim)
     params.Temperature = 313.15;
 
     % initial SOC
-    x10 = 0.5;
-    x20 = 0.05;    
+    x10 = 0.4;
+    x20 = 0.02;    
     
     params.eps = 1;        
     
@@ -76,8 +76,8 @@ function params = params_battery_calce_slow(params_sim)
     params.estimated_params = [7:30];
     
     % which vars am I optimising
-    % params.opt_vars = [1:2 8:10 12:14 16:18 20:22];    
-    params.opt_vars = [1 10 14 18 22];
+    params.opt_vars = [1:2 8:10 12:14 16:18 20:22];    
+    % params.opt_vars = [1 10 14 18 22];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
@@ -90,7 +90,7 @@ function params = params_battery_calce_slow(params_sim)
     % plot vars (used to plot the state estimation. When the parameters are
     % too many, consider to use only the true state components)
     params.plot_vars = 1:3;
-    params.plot_params = [4:22];%[7:14];
+    params.plot_params = [4:6];%[7:14];
     params.multi_traj_var = [1:2];
 
     % add stuff

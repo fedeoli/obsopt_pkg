@@ -25,17 +25,21 @@ function [final_input_output_signal_data, simout_struct] = data_loader(input_out
     % no additional noise for now
     ECM_Vb_noise = ECM_Vb;
     
-    % Capacity of the battery in Ampere-hours
-    capacity = 2.0027;  % Given as 2 Ah
+    % Battery Capacity (converting Ampere-hour to Ampere-second)
+    params.InputAmplitude = -1;
+    % params.C_n_h_nominal = 2.05272*abs(params.InputAmplitude);
+    params.C_n_h_nominal = 2.0*abs(params.InputAmplitude);
+    params.C_n_nominal = params.C_n_h_nominal * 3600; 
     
     % Calculate SOC for each time step
-    soc  = 1- (extracted_data.Discharge_Capacity_Ah_ - (extracted_data.Charge_Capacity_Ah_ - extracted_data.Charge_Capacity_Ah_(1)))/capacity;
+    % soc  = 1- (extracted_data.Discharge_Capacity_Ah_ - (extracted_data.Charge_Capacity_Ah_ - extracted_data.Charge_Capacity_Ah_(1)))/capacity;
+    soc = 0.8 - cumsum(final_input_output_signal_data.Current_A_/(3600*params.C_n_h_nominal));
     
     % Add the SOC column to data table
     final_input_output_signal_data.SOC = soc;
     ECM_soc = timeseries(soc, final_input_output_signal_data.Step_Time_s_, 'Name','ECM_soc');
 
-
+    % TO keep it same as simulink based script
     simout = struct('ECM_Vb_noise', ECM_Vb_noise, ...
                 'ECM_Vb', ECM_Vb, ...
                 'u', u, ...

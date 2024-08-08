@@ -6,18 +6,20 @@
 % real data of CALCE dataset 
 % INPUT: none
 % OUTPUT: params,obs
-function [params,obs] = simulation_realdata_battery_simulink_calce
+function [params,obs] = simulation_realdata_battery_calce
 
 % generate from simulink
-params = params_battery_simulink_calce;
-% options = simset('SrcWorkspace','current');
-% params.out = sim(model_name,params.time(end),options)
-params_sim = params;
-clear params
+params_sim = params_battery_simulink_calce;
 
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 30;
-Nts = 1;
+Nw = 30; % observer window lenth
+% Nts =2; % downsampling factor
+% multirate downsampling
+temp_Nts = ones(1,Nw) *2;
+temp_Nts(1:Nw-5)=20; 
+Nts = temp_Nts;
+% temp_Nts = ones(1,Nw) *2;
+% temp_Nts(1:Nw-5)=20;
 
 % noise
 rng default
@@ -64,7 +66,7 @@ terminal_weights = 1e0*ones(size(terminal_states));
 % SOC%
 % terminal_weights([1]) = 100;
 % OCV %
-% terminal_weights([3 7 11]) = 1;
+terminal_weights([3 6]) = 1;
 % R0 %
 % terminal_weights([4 8 12]) = 1e-2;
 % OCV %
@@ -76,11 +78,11 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [4 80 2 1 10 params.OutDim_compare], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
-          'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
+          'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-5 1e-4 1e-4],'BoundsValUp',[1 1e3 1e3]);
 
 
 
@@ -163,5 +165,6 @@ obs.init.Ytrue_full_story.val(1,1,:) = params_sim.out.simout.ECM_Vb.Data';
 % this "sounds" like a nice way to wake up. (Uncomment)
 % load handel
 % sound(y,Fs)
+obs.init.Nw_Nts=Nts*Nw;
 end
 

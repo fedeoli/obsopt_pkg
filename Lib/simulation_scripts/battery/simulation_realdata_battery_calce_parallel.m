@@ -6,7 +6,7 @@
 % real data of CALCE dataset 
 % INPUT: none
 % OUTPUT: params,obs
-function [params_out,obs] = simulation_realdata_battery_simulink_calce
+function [params_out,obs] = simulation_realdata_battery_calce_parallel
 
 % generate from simulink
 params_fast = params_battery_simulink_calce;
@@ -15,6 +15,7 @@ clear params_fast
 
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 30;
+
 
 % noise
 rng default
@@ -27,6 +28,7 @@ Ts = params_sim.Ts;
 % that you measured
 t0 = params_sim.time(1);
 tend = params_sim.time(end);
+% tend = 1000;
 
 %%%%%% general functions
 params_update = @params_update_battery_tushar;
@@ -55,7 +57,9 @@ params_fast = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', par
 
 % instance for SOC, R0, R1
 % NTs
-Nts_fast = 20;
+% Nts_fast = 2;
+Nts_fast = 2;
+
 % filters
 [filter_fast, filterScale_fast, ~] = filter_define(Ts,Nts_fast);
 % terminal states
@@ -63,11 +67,11 @@ terminal_states_fast = params_fast.opt_vars;
 terminal_weights_fast = 1e0*ones(size(terminal_states_fast));
 
 % class instance
-obs_fast = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params_fast.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
+obs_fast = obsopt('DataType', 'real', 'optimise', 0, 'MultiStart', params_fast.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts_fast, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_fast, 'filters', filterScale_fast,'filterTF', filter_fast, ...
           'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states_fast, 'terminal_weights', terminal_weights_fast, 'terminal_normalise', 1, ...
-          'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
+          'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-5 1e-4 1e-4],'BoundsValUp',[1 1e3 1e3]);
 
 %%% SLOW OBSOPT %%%
 
@@ -81,7 +85,11 @@ params_slow = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', par
 
 % instance for SOC, R0, R1
 % NTs
-Nts_slow = 40;
+
+temp_Nts = ones(1,Nw) *2;
+temp_Nts(1:Nw-5)=20;
+Nts_slow = temp_Nts;
+
 % filters
 [filter_slow, filterScale_slow, ~] = filter_define(Ts,Nts_slow);
 % terminal states
@@ -89,11 +97,11 @@ terminal_states_slow = params_slow.opt_vars;
 terminal_weights_slow = 1e0*ones(size(terminal_states_slow));
 
 % class instance
-obs_slow = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params_slow.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
-          'Nw', Nw, 'Nts', Nts_fast, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_slow, 'filters', filterScale_slow,'filterTF', filter_slow, ...
+obs_slow = obsopt('DataType', 'real', 'optimise', 0, 'MultiStart', params_slow.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
+          'Nw', Nw, 'Nts', Nts_slow, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_slow, 'filters', filterScale_slow,'filterTF', filter_slow, ...
           'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states_slow, 'terminal_weights', terminal_weights_slow, 'terminal_normalise', 1, ...
-          'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
+          'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-5 1e-4 1e-4],'BoundsValUp',[1 1e3 1e3]);
 
 
 
@@ -145,7 +153,7 @@ for i = 1:Niter
             X = obs_fast.setup.ode(@(t,x)obs_fast.setup.model(t, x, obs_fast.init.params, obs_fast), tspan, obs_fast.init.X_est(traj).val(:,startpos),params_fast.odeset);
             obs_fast.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
 
-            % fast
+            % slow
             X = obs_slow.setup.ode(@(t,x)obs_slow.setup.model(t, x, obs_slow.init.params, obs_slow), tspan, obs_slow.init.X_est(traj).val(:,startpos),params_slow.odeset);
             obs_slow.init.X_est(traj).val(:,startpos:stoppos) = [X.y(:,1),X.y(:,end)];
                                                       
@@ -169,8 +177,8 @@ for i = 1:Niter
 
     % slow updates fast
     if mod(i,Nts_slow) == 0
-        obs_fast.init.X_est(traj).val(params_slow.opt_vars,max(1,i-Nts_slow):i) = obs_slow.init.X_est(traj).val(params_slow.opt_vars,max(1,i-Nts_slow):i);
-        obs_slow.init.X_est(traj).val(params_fast.opt_vars,max(1,i-Nts_fast):i) = obs_fast.init.X_est(traj).val(params_fast.opt_vars,max(1,i-Nts_fast):i);
+        % obs_fast.init.X_est(traj).val(params_slow.opt_vars,max(1,i-Nts_slow):i) = obs_slow.init.X_est(traj).val(params_slow.opt_vars,max(1,i-Nts_slow):i);
+        % obs_slow.init.X_est(traj).val(params_fast.opt_vars,max(1,i-Nts_fast):i) = obs_fast.init.X_est(traj).val(params_fast.opt_vars,max(1,i-Nts_fast):i);
     end
 
 end
@@ -181,14 +189,29 @@ obs_fast.init.total_time = toc(t0);
 
 %%% post sim operations %%%
 obs_fast.init.X.val = zeros(params_fast.dim_state,params_fast.Niter);
-obs_fast.init.X.val(1,:) = params_sim.out.simout.ECM_soc.Data';
-obs_fast.init.X.val(3,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.OCV,params_sim.out.simout.ECM_soc.Data);
-obs_fast.init.X.val(4,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.R0,params_sim.out.simout.ECM_soc.Data);
-obs_fast.init.X.val(5,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.R1,params_sim.out.simout.ECM_soc.Data);
-obs_fast.init.X.val(6,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.C1,params_sim.out.simout.ECM_soc.Data);
+obs_fast.init.X.val(1,:) = params_sim.out.simout.ECM_soc.Data(1:tend+1)';
+obs_fast.init.X.val(3,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.OCV,params_sim.out.simout.ECM_soc.Data(1:tend+1));
+obs_fast.init.X.val(4,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.R0,params_sim.out.simout.ECM_soc.Data(1:tend+1));
+obs_fast.init.X.val(5,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.R1,params_sim.out.simout.ECM_soc.Data(1:tend+1));
+obs_fast.init.X.val(6,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.C1,params_sim.out.simout.ECM_soc.Data(1:tend+1));
 
 obs_fast.init.Ytrue_full_story.val = zeros(obs_fast.setup.Nfilt,params_fast.OutDim,params_fast.Niter);
-obs_fast.init.Ytrue_full_story.val(1,1,:) = params_sim.out.simout.ECM_Vb.Data';
+obs_fast.init.Ytrue_full_story.val(1,1,:) = params_sim.out.simout.ECM_Vb.Data(1:tend+1)';
+
+
+obs_slow.init.X.val = zeros(params_fast.dim_state,params_fast.Niter);
+obs_slow.init.X.val(1,:) = params_sim.out.simout.ECM_soc.Data(1:tend+1)';
+obs_slow.init.X.val(3,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.OCV,params_sim.out.simout.ECM_soc.Data(1:tend+1));
+obs_slow.init.X.val(4,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.R0,params_sim.out.simout.ECM_soc.Data(1:tend+1));
+obs_slow.init.X.val(5,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.R1,params_sim.out.simout.ECM_soc.Data(1:tend+1));
+obs_slow.init.X.val(6,:) = interp1(params_sim.input_data.SOC,params_sim.input_data.C1,params_sim.out.simout.ECM_soc.Data(1:tend+1));
+
+obs_slow.init.Ytrue_full_story.val = zeros(obs_fast.setup.Nfilt,params_fast.OutDim,params_fast.Niter);
+obs_slow.init.Ytrue_full_story.val(1,1,:) = params_sim.out.simout.ECM_Vb.Data(1:tend+1)';
+
+obs_fast.init.Nw_Nts = Nts_fast*Nw;
+obs_slow.init.Nw_Nts = Nts_slow*Nw;
+
 
 % assign output
 obs = {obs_fast, obs_slow};
@@ -197,5 +220,7 @@ params_out = {params_fast, params_slow};
 % this "sounds" like a nice way to wake up. (Uncomment)
 % load handel
 % sound(y,Fs)
+
+
 end
 

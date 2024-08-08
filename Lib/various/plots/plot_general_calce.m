@@ -12,35 +12,99 @@ function plot_general_calce(obj,varargin)
     
     fontsize = 20;
     fig_count = 0;
+    category20 = [
+    31, 119, 180; % Color 1: Blue
+    255, 127, 14; % Color 2: Orange
+    44, 160, 44; % Color 3: Green
+    214, 39, 40; % Color 4: Red
+    148, 103, 189; % Color 5: Purple
+    140, 86, 75; % Color 6: Brown
+    227, 119, 194; % Color 7: Pink
+    127, 127, 127; % Color 8: Gray
+    188, 189, 34; % Color 9: Olive
+    23, 190, 207; % Color 10: Cyan
+    174, 199, 232; % Color 11: Light Blue
+    255, 187, 120; % Color 12: Light Orange
+    152, 223, 138; % Color 13: Light Green
+    255, 152, 150; % Color 14: Light Red
+    197, 176, 213; % Color 15: Lavender
+    196, 156, 148; % Color 16: Tan
+    247, 182, 210; % Color 17: Light Pink
+    199, 199, 199; % Color 18: Light Gray
+    219, 219, 141; % Color 19: Light Olive
+    158, 218, 229  % Color 20: Light Cyan
+] / 255; 
     
     %%%% plot state estimation %%%
-    fig_count = fig_count+1;
-    figure(fig_count)            
-    sgtitle('State estimation')
-    for i=1:length(obj.setup.plot_vars)
-        subplot(length(obj.setup.plot_vars),1,i);
-        hold on
-        grid on
-        box on
         
-        for traj=1:obj.setup.Ntraj
+    for i=1:length(obj.setup.plot_vars)
+        fig_count = fig_count+1;
+        figure(fig_count)
+
+        % First subplot: True and estimated values
+        subplot(2, 1, 1);
+        hold on;
+        grid on;
+        box on;
+        true_values = [];
+        estimated_values = [];
+        
+        for traj = 1:obj.setup.Ntraj
             if 1 || strcmp(obj.setup.DataType,'simulated')
-                plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_vars(i),:),'b--','LineWidth',2);
+                plot(obj.setup.time, obj.init.X(traj).val(obj.setup.plot_vars(i), :), 'LineStyle', '--', 'LineWidth', 2, 'Color', 'blue');
+                true_values = [true_values; obj.init.X(traj).val(obj.setup.plot_vars(i), :)];
             end
-            plot(obj.setup.time,obj.init.X_est_runtime(traj).val(obj.setup.plot_vars(i),:),'r--','LineWidth',2);                                                  
+            plot(obj.setup.time, obj.init.X_est_runtime(traj).val(obj.setup.plot_vars(i), :), 'LineStyle', '--', 'LineWidth', 2, 'Color', category20(2, :));
+            estimated_values = [estimated_values; obj.init.X_est_runtime(traj).val(obj.setup.plot_vars(i), :)];
         end    
 
-        % labels
-        set(gca,'fontsize', fontsize) 
-        ylabel(['x_',num2str(obj.setup.plot_vars(i))])
+        % Labels
+        set(gca, 'fontsize', fontsize);
+        ylabel(['x_', num2str(obj.setup.plot_vars(i))]);
+        
+        xlabel('time[s]');
+        legend('True', 'Est');
+
+
+        % Second subplot: Error
+        subplot(2, 1, 2);
+        hold on;
+        grid on;
+        box on;
+
+        for traj = 1:obj.setup.Ntraj
+            error = obj.init.X(traj).val(obj.setup.plot_vars(i), :) - obj.init.X_est_runtime(traj).val(obj.setup.plot_vars(i), :);
+            plot(obj.setup.time, error, 'LineStyle', '--', 'LineWidth', 2, 'Color', category20(4, :));
+        end
+
+        % Calculate Metrics
+
+        if i==1
+            errors = true_values(obj.init.Nw_Nts:end) - estimated_values(obj.init.Nw_Nts:end);
+            RMSE = sqrt(mean(errors.^2));
+            R2 = 1 - sum(errors.^2) / sum((true_values(obj.init.Nw_Nts:end) - mean(true_values(obj.init.Nw_Nts:end))).^2);
+            MAPE = mean(abs(errors ./ true_values(obj.init.Nw_Nts:end))) * 100;
+    
+            % Display Metrics
+            metrics_text = {
+                ['SOC RMSE: ', num2str(RMSE)];
+                ['SOC R²: ', num2str(R2)];
+                ['SOC MAPE: ', num2str(MAPE), '%']
+            };
+            % dim = [.15 .5 .3 .3];
+            % annotation('textbox', dim, 'String', metrics_text, 'FitBoxToText', 'on', 'BackgroundColor', 'white');
+            disp(metrics_text)
+        end
+
+        % Labels
+        set(gca, 'fontsize', fontsize);
+        ylabel(['Error in x_', num2str(obj.setup.plot_vars(i))]);
+        xlabel('time [s]');
+        title('Estimation Error');
+     
+
     end
-    % legend
-    if strcat(obj.setup.DataType,'simulated')
-        legend('True','Est')
-    else
-        legend('Stored','Est','Runtime')
-    end    
-    xlabel(['time [s]'])
+
     
     
     %%%% plot parameters estimation %%%
@@ -60,7 +124,6 @@ function plot_general_calce(obj,varargin)
         % Iterate over each group
         for g = 1:length(groups)
             fig_count = fig_count + 1;
-            figure(fig_count)
             sgtitle('Parameters estimation')
     
             % Plot each parameter in the group
@@ -71,22 +134,22 @@ function plot_general_calce(obj,varargin)
                 box on
     
                 for traj = 1:obj.setup.Ntraj
-                    if 1 || strcmp(obj.setup.DataType, 'simulated')
-                        plot(obj.setup.time, obj.init.X(traj).val(groups{g}(i), :), 'b--', 'LineWidth', 2);
-                    end
-                    plot(obj.setup.time, obj.init.X_est_runtime(traj).val(groups{g}(i), :), 'g--', 'LineWidth', 2);
+                    % if 1 || strcmp(obj.setup.DataType, 'simulated')
+                    %     plot(obj.setup.time, obj.init.X(traj).val(groups{g}(i), :), 'b--', 'LineWidth', 2);
+                    % end
+                    plot(obj.setup.time, obj.init.X_est_runtime(traj).val(groups{g}(i), :), 'LineStyle', '--', 'LineWidth', 2, 'Color', category20(2, :));
                 end
     
-                % labels
+                % labelsval
                 set(gca, 'fontsize', fontsize)
                 ylabel(['x_', num2str(groups{g}(i))], 'Interpreter', 'none')
             end
     
-            if strcmp(obj.setup.DataType, 'simulated')
-                legend('True', 'Est')
-            else
-                legend('Stored', 'Est', 'Runtime')
-            end
+            % if strcmp(obj.setup.DataType, 'simulated')
+            %     legend('True', 'Est')
+            % else
+            %     legend('Stored', 'Est', 'Runtime')
+            % end
             xlabel(['time [s]'])
         end
     end
@@ -123,69 +186,69 @@ function plot_general_calce(obj,varargin)
     %     xlabel(['time [s]'])
     % end
     
-    %%%% plot state estimation error %%%
-    if strcmp(obj.setup.DataType,'simulated')                
-        fig_count = fig_count+1;
-        figure(fig_count)
-        sgtitle('Estimation error - components')
-
-        for i=1:length(obj.setup.plot_vars)
-            subplot(length(obj.setup.plot_vars),1,i);
-            hold on
-            grid on
-            box on
-
-            % plot
-            est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_vars(i),:);
-
-            log_flag = 1;
-            if ~log_flag
-                plot(obj.setup.time,est_error,'k','LineWidth',2);
-            else
-                % log 
-%                     set(gca, 'XScale', 'log')
-                set(gca, 'YScale', 'log')
-                plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
-            end            
-
-            set(gca,'fontsize', fontsize)
-            ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
-        end        
-        xlabel('time [s]')        
-    end
-    
-    %%%% plot parameters estimation error %%%
-    if 1 || strcmp(obj.setup.DataType,'simulated')
-        if ~isempty(obj.setup.plot_params)                    
-            fig_count = fig_count+1;
-            figure(fig_count)
-            sgtitle('Estimation error - parameters')
-
-            for i=1:length(obj.setup.plot_params)
-                subplot(length(obj.setup.plot_params),1,i);
-                hold on
-                grid on
-                box on
-
-                % plot
-                est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_params(i),:);
-
-                log_flag = 1;
-                if ~log_flag
-                    plot(obj.setup.time,est_error,'b','LineWidth',2);
-                else
-                    % log 
-%                     set(gca, 'XScale', 'log')
-                    set(gca, 'YScale', 'log')
-                    plot(obj.setup.time,abs(est_error),'b','LineWidth',2);
-                end
-
-                set(gca,'fontsize', fontsize)                
-                ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
-            end
-            xlabel('time [s]')
-        end
-    end
+%     %%%% plot state estimation error %%%
+%     if strcmp(obj.setup.DataType,'simulated')                
+%         fig_count = fig_count+1;
+%         figure(fig_count)
+%         sgtitle('Estimation error - components')
+% 
+%         for i=1:length(obj.setup.plot_vars)
+%             subplot(length(obj.setup.plot_vars),1,i);
+%             hold on
+%             grid on
+%             box on
+% 
+%             % plot
+%             est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_vars(i),:);
+% 
+%             log_flag = 1;
+%             if ~log_flag
+%                 plot(obj.setup.time,est_error,'k','LineWidth',2);
+%             else
+%                 % log 
+% %                     set(gca, 'XScale', 'log')
+%                 set(gca, 'YScale', 'log')
+%                 plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
+%             end            
+% 
+%             set(gca,'fontsize', fontsize)
+%             ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
+%         end        
+%         xlabel('time [s]')        
+%     end
+% 
+%     %%%% plot parameters estimation error %%%
+%     if 1 || strcmp(obj.setup.DataType,'simulated')
+%         if ~isempty(obj.setup.plot_params)                    
+%             fig_count = fig_count+1;
+%             figure(fig_count)
+%             sgtitle('Estimation error - parameters')
+% 
+%             for i=1:length(obj.setup.plot_params)
+%                 subplot(length(obj.setup.plot_params),1,i);
+%                 hold on
+%                 grid on
+%                 box on
+% 
+%                 % plot
+%                 est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_params(i),:);
+% 
+%                 log_flag = 1;
+%                 if ~log_flag
+%                     plot(obj.setup.time,est_error,'b','LineWidth',2);
+%                 else
+%                     % log 
+% %                     set(gca, 'XScale', 'log')
+%                     set(gca, 'YScale', 'log')
+%                     plot(obj.setup.time,abs(est_error),'b','LineWidth',2);
+%                 end
+% 
+%                 set(gca,'fontsize', fontsize)                
+%                 ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
+%             end
+%             xlabel('time [s]')
+%         end
+%     end
     
     %%%% plot state estimation error - norm%%%
     if strcmp(obj.setup.DataType,'simulated')                
@@ -270,27 +333,34 @@ function plot_general_calce(obj,varargin)
                     ytrue_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Ytrue_full_story(traj).val(k,dim,:),size(obj.setup.time));
                 end
                 yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
-                if 1
-                    if strcmp(obj.setup.DataType,'simulated')
-                        plot(obj.setup.time,y_plot,'b--');
-                    end
-                    plot(obj.setup.time,yhat_plot,'r--','LineWidth',2);
-                    plot(obj.setup.time,y_plot,'k:','LineWidth',2);                            
-                else
-                    plot(obj.setup.time,abs(y_plot-yhat_plot));
-                    set(gca, 'YScale', 'log')
+
+                if strcmp(obj.setup.DataType,'simulated')
+                    plot(obj.setup.time,y_plot,'b--');
                 end
+                plot(obj.setup.time,yhat_plot,'LineStyle', ':', 'LineWidth', 2, 'Color', category20(2, :));
+                plot(obj.setup.time,y_plot,'LineStyle', '--', 'LineWidth', 2, 'Color', 'blue');                            
+
             end                        
         end    
-        if strcmp(obj.setup.DataType,'simulated')
-            legend('meas','estimation','target')
-        else
-            legend('meas','est')
-        end
-        
+        legend('est','meas')
         set(gca,'fontsize', fontsize)
-        ylabel(strcat('y_{filter}^',num2str(k)));
-        xlabel('simulation time [s]');
+        ylabel('voltage [V]');
+        xlabel('time [s]');
+
+        errors = y_plot(obj.init.Nw_Nts:end) - yhat_plot(obj.init.Nw_Nts:end);
+        RMSE = sqrt(mean(errors.^2));
+        R2 = 1 - sum(errors.^2) / sum((y_plot(obj.init.Nw_Nts:end) - mean(y_plot(obj.init.Nw_Nts:end))).^2);
+        MAPE = mean(abs(errors ./ y_plot(obj.init.Nw_Nts:end))) * 100;
+
+        % Display Metrics
+        metrics_text = {
+            ['Voltage RMSE: ', num2str(RMSE)];
+            ['Voltage R²: ', num2str(R2)];
+            ['Voltage MAPE: ', num2str(MAPE), '%']
+        };
+        % dim = [.15 .5 .3 .3];
+        % annotation('textbox', dim, 'String', metrics_text, 'FitBoxToText', 'on', 'BackgroundColor', 'white');
+        disp(metrics_text)
         
     end
     linkaxes(ax,'x');
