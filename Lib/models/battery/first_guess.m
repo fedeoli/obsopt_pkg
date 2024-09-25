@@ -15,7 +15,7 @@ function params_out = first_guess(params,params_sim)
     
     % define param
     Nparam = 4;
-    Npoly = 4;
+    Npoly = 5;
     CT = 0;
     
     % opt vars

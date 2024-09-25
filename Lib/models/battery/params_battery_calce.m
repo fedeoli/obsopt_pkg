@@ -76,7 +76,8 @@ function params = params_battery_calce(params_sim)
     params.estimated_params = [7:30];
     
     % which vars am I optimising
-    params.opt_vars = [1:2 8:10 12:14 16:18 20:22];
+    % params.opt_vars = [1:2 8:10 12:14 16:18 20:22];
+    params.opt_vars = [1:2 8:9 12:13 16:17 20:21];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));
