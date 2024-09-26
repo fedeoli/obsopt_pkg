@@ -1059,7 +1059,7 @@ classdef obsopt < handle
         % dJ_cond: function for the adaptive sampling
         % test: try to work with wavelets
         % it will simply return the main frequencies of the current signal
-        function obj = dJ_cond_v5_function(obj)      
+        function obj = dJ_cond_v5_function(obj)
             
             % Wavelet adaptive
             buffer_ready = (~obj.init.PE_flag)*(obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
