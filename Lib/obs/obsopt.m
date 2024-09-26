@@ -193,12 +193,18 @@ classdef obsopt < handle
                 obj.init.Fselect = tmp(3);  % 1 = min 2 = max 
                 obj.init.FNts = tmp(4);
                 obj.init.Fmin = tmp(5);
-                obj.init.wavelet_output_dim = tmp(6:end);
+                obj.init.epsD = tmp(6);
+                obj.init.PE_flag = tmp(7);
+                obj.init.wavelet_output_dim = tmp(8:end);
             else
                 obj.init.FNts = 1;
                 obj.init.Fbuflen = 20;
                 obj.init.Fselect = 2;
                 obj.init.Fnyq = 2;
+                obj.init.FNts = 0;
+                obj.init.PE_flag = 1;
+                obj.init.epsD = Inf;
+                obj.init.wavelet_output_dim = [];
             end
             
             % enable or not the buffer flush on the adaptive sampling
