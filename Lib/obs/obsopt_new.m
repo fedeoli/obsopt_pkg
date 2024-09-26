@@ -26,7 +26,7 @@
 % 4) newton-like observer (obsopt)
 % -----> back to 2
 % 5) plot section (optional)
-classdef obsopt < handle
+classdef obsopt_new < handle
     %%% class properties
     properties
         % setup: set of flags defining the main characteristics. These
@@ -45,7 +45,7 @@ classdef obsopt < handle
         % set by calling the constructor with specific properties, i.e. by
         % properly using the varargin parameter. Otherwise a default system
         % is set up
-        function obj = obsopt(varargin)
+        function obj = obsopt_new(varargin)
             
             if any(strcmp(varargin,'params'))
                 pos = find(strcmp(varargin,'params'));
@@ -176,7 +176,7 @@ classdef obsopt < handle
             obj.init.freqs = zeros(obj.init.nfreqs,1);
             obj.init.wvname = 'amor';
             obj.init.Nv = 48;
-            obj.init.PLIMITS = [1e0*obj.setup.Ts 2e2*obj.setup.Ts];
+            obj.init.PLIMITS = [1e-2*obj.setup.Ts 2e2*obj.setup.Ts];
             obj.init.FLIMITS = fliplr(1./obj.init.PLIMITS);            
             obj.init.NtsChanged = 0;
             obj.init.break = 0;
@@ -193,12 +193,18 @@ classdef obsopt < handle
                 obj.init.Fselect = tmp(3);  % 1 = min 2 = max 
                 obj.init.FNts = tmp(4);
                 obj.init.Fmin = tmp(5);
-                obj.init.wavelet_output_dim = tmp(6:end);
+                obj.init.epsD = tmp(6);
+                obj.init.PE_flag = tmp(7);
+                obj.init.wavelet_output_dim = tmp(8:end);
             else
                 obj.init.FNts = 1;
                 obj.init.Fbuflen = 20;
                 obj.init.Fselect = 2;
                 obj.init.Fnyq = 2;
+                obj.init.FNts = 0;
+                obj.init.PE_flag = 1;
+                obj.init.epsD = Inf;
+                obj.init.wavelet_output_dim = [];
             end
             
             % enable or not the buffer flush on the adaptive sampling
@@ -1059,8 +1065,8 @@ classdef obsopt < handle
         % dJ_cond: function for the adaptive sampling
         % test: try to work with wavelets
         % it will simply return the main frequencies of the current signal
-        function obj = dJ_cond_v5_function(obj)      
-            
+        function obj = dJ_cond_v5_function(obj) 
+
             % Wavelet adaptive
             buffer_ready = (~obj.init.PE_flag)*(obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
             buf_data = squeeze(obj.init.Y(obj.init.traj).val(1,:,:));
@@ -1226,29 +1232,54 @@ classdef obsopt < handle
             % define bound on freq (at least 2 due to Nyquist)
             freq_bound = obj.init.Fnyq;
             % set NtsVal depending on freqs
-            if any(obj.init.freqs(:,end))
+            if obj.setup.AdaptiveSampling
                 % define freq on which calibrate the sampling time
 
+                lasterr = nonzeros(squeeze(obj.init.Y(obj.init.traj).val(1,:,:))) - nonzeros(squeeze(obj.init.Yhat_full_story(obj.init.traj).val(1,:,nonzeros(obj.init.Y_space))));
+                if ~isempty(lasterr)
+                    lasterr = vecnorm(lasterr);
+                else
+                    lasterr = Inf;
+                end
+                obj.init.lasterror_story(obj.init.traj).val(obj.init.ActualTimeIndex) = lasterr;
+
                 % here with wavelets
-                % freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
-                % Ts_wv = 1/(freq); % s
-                %distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+                if (~obj.init.PE_flag)
+                    if (lasterr > obj.init.epsD)                        
+                        freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
+                        Ts_wv = 1/(freq); % s
+                        distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+                    else
+                        distance_min = Inf;
+                    end
+                end
 
                 % here with PE
-                if obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound
-                    distance_min = distance + 1;
-                else
-                    distance_min = 1;
+                if (obj.init.PE_flag)
+                    if (obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound) && (lasterr > obj.init.epsD)
+                        distance_min = distance;
+                    else
+                        distance_min = Inf;
+                    end
                 end
+
+                if ~any(obj.init.freqs(:,end)) 
+                    distance_min = Inf;%obj.setup.NtsVal(NtsPos); 
+                else
+                    a = 1;
+                end
+                obj.init.dmin_story(obj.init.ActualTimeIndex) = distance_min;
+
             else
-                distance_min = obj.setup.NtsVal(NtsPos);                
+                distance_min = obj.setup.NtsVal(NtsPos);
             end
 
             % update the minimum distance                        
             obj.setup.NtsVal(NtsPos) = distance_min;            
             
             % safety flag
-            obj.init.distance_safe_flag = (distance < obj.init.safety_interval);           
+            obj.init.distance_safe_flag = (distance < obj.init.safety_interval);   
+            obj.init.distance_safe_flag_story(obj.init.traj).val(obj.init.ActualTimeIndex) = obj.init.distance_safe_flag;
             
             %%%% observer %%%%
             if  ( ~( (distance < obj.setup.NtsVal(NtsPos)) && (obj.init.distance_safe_flag) ) )
@@ -1430,11 +1461,15 @@ classdef obsopt < handle
                                 end
                             end        
                             if (obj.setup.J_term_terminal) && (obj.setup.terminal_normalise)
-                                E = vecnorm(obj.init.X_est(traj).val(obj.setup.terminal_states,range)');
+                                E = vecnorm(obj.init.X_est(traj).val(obj.setup.terminal_states,range)',2,1);
                                 E_scale = E/sum(E);
                                 for dim=1:length(obj.setup.terminal_states)                                                                        
-%                                     obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/(E_scale(dim));                                    
-                                    obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/E(dim);
+%                                     obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/(E_scale(dim)); 
+                                    if E(dim) ~= 0
+                                        obj.init.scale_factor_scaled_terminal(dim) = obj.init.scale_factor(1,obj.setup.J_term_terminal_position)/E(dim);
+                                    else
+                                        obj.init.scale_factor_scaled_terminal(dim) = 1;
+                                    end
                                 end    
                             elseif (obj.setup.J_term_terminal)
                                 for dim=1:length(obj.setup.terminal_states)
