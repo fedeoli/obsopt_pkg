@@ -1272,7 +1272,8 @@ classdef obsopt < handle
             obj.setup.NtsVal(NtsPos) = distance_min;            
             
             % safety flag
-            obj.init.distance_safe_flag = (distance < obj.init.safety_interval);           
+            obj.init.distance_safe_flag = (distance < obj.init.safety_interval);
+            obj.init.distance_safe_flag_story(obj.init.traj).val(obj.init.ActualTimeIndex) = obj.init.distance_safe_flag;
             
             %%%% observer %%%%
             if  ( ~( (distance < obj.setup.NtsVal(NtsPos)) && (obj.init.distance_safe_flag) ) )
