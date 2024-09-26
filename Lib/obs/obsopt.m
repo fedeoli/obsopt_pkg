@@ -1226,22 +1226,46 @@ classdef obsopt < handle
             % define bound on freq (at least 2 due to Nyquist)
             freq_bound = obj.init.Fnyq;
             % set NtsVal depending on freqs
-            if any(obj.init.freqs(:,end))
+            if obj.setup.AdaptiveSampling
                 % define freq on which calibrate the sampling time
 
+                lasterr = nonzeros(squeeze(obj.init.Y(obj.init.traj).val(1,:,:))) - nonzeros(squeeze(obj.init.Yhat_full_story(obj.init.traj).val(1,:,nonzeros(obj.init.Y_space))));
+                if ~isempty(lasterr)
+                    lasterr = vecnorm(lasterr);
+                else
+                    lasterr = Inf;
+                end
+                obj.init.lasterror_story(obj.init.traj).val(obj.init.ActualTimeIndex) = lasterr;
+
                 % here with wavelets
-                % freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
-                % Ts_wv = 1/(freq); % s
-                %distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+                if (~obj.init.PE_flag)
+                    if (lasterr > obj.init.epsD)                        
+                        freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
+                        Ts_wv = 1/(freq); % s
+                        distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+                    else
+                        distance_min = Inf;
+                    end
+                end
 
                 % here with PE
-                if obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound
-                    distance_min = distance + 1;
-                else
-                    distance_min = 1;
+                if (obj.init.PE_flag)
+                    if (obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound) && (lasterr > obj.init.epsD)
+                        distance_min = distance;
+                    else
+                        distance_min = Inf;
+                    end
                 end
+
+                if ~any(obj.init.freqs(:,end)) 
+                    distance_min = Inf;%obj.setup.NtsVal(NtsPos); 
+                else
+                    a = 1;
+                end
+                obj.init.dmin_story(obj.init.ActualTimeIndex) = distance_min;
+
             else
-                distance_min = obj.setup.NtsVal(NtsPos);                
+                distance_min = obj.setup.NtsVal(NtsPos);
             end
 
             % update the minimum distance                        
