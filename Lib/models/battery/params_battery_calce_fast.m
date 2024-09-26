@@ -43,9 +43,6 @@ function params = params_battery_calce_fast(params_sim)
     params.eps = 1;        
     
     %%%%%%% SETUP THE OBSERVER %%%%%
-    % out vars - observer
-    params.OutDim = 1;
-    params.OutDim_compare = [1];
 
     % input dim - observer
     params.dim_input = 1;                    
@@ -77,7 +74,8 @@ function params = params_battery_calce_fast(params_sim)
     
     % which vars am I optimising
     % params.opt_vars = [1:2 8:10 12:14 16:18 20:22];
-    params.opt_vars = [2 8:9 12:13 16:17 20:21];
+    % params.opt_vars = [2 8:9 12:13 16:17 20:21];
+    params.opt_vars = [2];
     
     % set the not optimised vars
     tmp = 1:length(params.X(1).val(:,1));

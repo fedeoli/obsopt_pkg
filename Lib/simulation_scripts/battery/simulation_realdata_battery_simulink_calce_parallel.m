@@ -6,7 +6,7 @@
 % real data of CALCE dataset 
 % INPUT: none
 % OUTPUT: params,obs
-function [params_out,obs] = simulation_realdata_battery_simulink_calce
+function [params_out,obs] = simulation_realdata_battery_simulink_calce_parallel
 
 % generate from simulink
 params_fast = params_battery_simulink_calce;
@@ -81,7 +81,7 @@ params_slow = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', par
 
 % instance for SOC, R0, R1
 % NTs
-Nts_slow = 40;
+Nts_slow = 100;
 % filters
 [filter_slow, filterScale_slow, ~] = filter_define(Ts,Nts_slow);
 % terminal states
@@ -189,6 +189,10 @@ obs_fast.init.X.val(6,:) = interp1(params_sim.input_data.SOC,params_sim.input_da
 
 obs_fast.init.Ytrue_full_story.val = zeros(obs_fast.setup.Nfilt,params_fast.OutDim,params_fast.Niter);
 obs_fast.init.Ytrue_full_story.val(1,1,:) = params_sim.out.simout.ECM_Vb.Data';
+
+% same ground truth for obs_slow
+obs_slow.init.X = obs_fast.init.X;
+obs_slow.init.Ytrue_full_story = obs_fast.init.Ytrue_full_story;
 
 % assign output
 obs = {obs_fast, obs_slow};

@@ -17,6 +17,7 @@ function plot_general_calce(obj,varargin)
     fig_count = fig_count+1;
     figure(fig_count)            
     sgtitle('State estimation')
+    ylabels = {'$Z$', '$V1$', '$OCV$'};
     for i=1:length(obj.setup.plot_vars)
         subplot(length(obj.setup.plot_vars),1,i);
         hold on
@@ -32,7 +33,7 @@ function plot_general_calce(obj,varargin)
 
         % labels
         set(gca,'fontsize', fontsize) 
-        ylabel(['x_',num2str(obj.setup.plot_vars(i))])
+        ylabel(ylabels{i},'Interpreter','latex');
     end
     % legend
     if strcat(obj.setup.DataType,'simulated')
@@ -40,7 +41,7 @@ function plot_general_calce(obj,varargin)
     else
         legend('Stored','Est','Runtime')
     end    
-    xlabel(['time [s]'])
+    xlabel('time [s]')
     
     
     %%%% plot parameters estimation %%%
@@ -54,9 +55,14 @@ function plot_general_calce(obj,varargin)
             [9, 13, 17, 21]... 
             [10, 14, 18, 22]
         };
-        
-        fig_count = fig_count + 1;  % Ensure fig_count is initialized
-        
+        ylabels = {
+                   ['$R0$'; '$R1$'; '$C1$'], ...
+                   ['$\alpha_{0,OCV}$'; '$\alpha_{1,OCV}$'; '$\alpha_{2,OCV}$'; '$\alpha_{3,OCV}$'], ...
+                   ['$\alpha_{0,R0}$'; '$\alpha_{1,R0}$'; '$\alpha_{2,R0}$'; '$\alpha_{3,R0}$'], ...
+                   ['$\alpha_{0,R1}$'; '$\alpha_{1,R1}$'; '$\alpha_{2,R1}$'; '$\alpha_{3,R1}$'], ...
+                   ['$\alpha_{0,C1}$'; '$\alpha_{1,C1}$'; '$\alpha_{2,C1}$'; '$\alpha_{3,C1}$']
+                   };        
+
         % Iterate over each group
         for g = 1:length(groups)
             fig_count = fig_count + 1;
@@ -79,8 +85,8 @@ function plot_general_calce(obj,varargin)
     
                 % labels
                 set(gca, 'fontsize', fontsize)
-                ylabel(['x_', num2str(groups{g}(i))], 'Interpreter', 'none')
-            end
+                ylabel(ylabels{g}(i,:), 'Interpreter', 'latex');
+                end
     
             if strcmp(obj.setup.DataType, 'simulated')
                 legend('True', 'Est')
@@ -89,212 +95,7 @@ function plot_general_calce(obj,varargin)
             end
             xlabel(['time [s]'])
         end
-    end
-
-    %%%% plot parameters estimation %%%
-    % if ~isempty(obj.setup.plot_params)
-    % 
-    %     fig_count = fig_count+1;
-    %     figure(fig_count)
-    %     sgtitle('Parameters estimation')
-    %     for i=1:length(obj.setup.plot_params)
-    %         subplot(length(obj.setup.plot_params),1,i);
-    %         hold on
-    %         grid on
-    %         box on
-    % 
-    %         for traj=1:obj.setup.Ntraj
-    %             if 1 || strcmp(obj.setup.DataType,'simulated')
-    %                 plot(obj.setup.time,obj.init.X(traj).val(obj.setup.plot_params(i),:),'b--','LineWidth',2);
-    %             end
-    %             plot(obj.setup.time,obj.init.X_est_runtime(traj).val(obj.setup.plot_params(i),:),'g--','LineWidth',2);                                                      
-    %         end
-    % 
-    %         % labels
-    %         set(gca,'fontsize', fontsize)             
-    %         ylabel(['x_',num2str(obj.setup.plot_params(i))])
-    %     end
-    % 
-    %     if strcat(obj.setup.DataType,'simulated')
-    %         legend('True','Est')
-    %     else
-    %         legend('Stored','Est','Runtime')
-    %     end
-    %     xlabel(['time [s]'])
-    % end
-    
-    %%%% plot state estimation error %%%
-    if strcmp(obj.setup.DataType,'simulated')                
-        fig_count = fig_count+1;
-        figure(fig_count)
-        sgtitle('Estimation error - components')
-
-        for i=1:length(obj.setup.plot_vars)
-            subplot(length(obj.setup.plot_vars),1,i);
-            hold on
-            grid on
-            box on
-
-            % plot
-            est_error = obj.init.X(1).val(obj.setup.plot_vars(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_vars(i),:);
-
-            log_flag = 1;
-            if ~log_flag
-                plot(obj.setup.time,est_error,'k','LineWidth',2);
-            else
-                % log 
-%                     set(gca, 'XScale', 'log')
-                set(gca, 'YScale', 'log')
-                plot(obj.setup.time,abs(est_error),'k','LineWidth',2);
-            end            
-
-            set(gca,'fontsize', fontsize)
-            ylabel(['\delta x_',num2str(obj.setup.plot_vars(i))])
-        end        
-        xlabel('time [s]')        
-    end
-    
-    %%%% plot parameters estimation error %%%
-    if 1 || strcmp(obj.setup.DataType,'simulated')
-        if ~isempty(obj.setup.plot_params)                    
-            fig_count = fig_count+1;
-            figure(fig_count)
-            sgtitle('Estimation error - parameters')
-
-            for i=1:length(obj.setup.plot_params)
-                subplot(length(obj.setup.plot_params),1,i);
-                hold on
-                grid on
-                box on
-
-                % plot
-                est_error = obj.init.X(1).val(obj.setup.plot_params(i),:) - obj.init.X_est_runtime(1).val(obj.setup.plot_params(i),:);
-
-                log_flag = 1;
-                if ~log_flag
-                    plot(obj.setup.time,est_error,'b','LineWidth',2);
-                else
-                    % log 
-%                     set(gca, 'XScale', 'log')
-                    set(gca, 'YScale', 'log')
-                    plot(obj.setup.time,abs(est_error),'b','LineWidth',2);
-                end
-
-                set(gca,'fontsize', fontsize)                
-                ylabel(['\delta x_',num2str(obj.setup.plot_params(i))])
-            end
-            xlabel('time [s]')
-        end
-    end
-    
-    %%%% plot state estimation error - norm%%%
-    if strcmp(obj.setup.DataType,'simulated')                
-        fig_count = fig_count+1;
-        figure(fig_count)
-        sgtitle('Estimation error state - norm')
-        hold on
-        grid on
-        box on
-
-        % plot
-        for iter=1:obj.setup.Niter
-            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_vars,iter) - obj.init.X_est_runtime(1).val(obj.setup.plot_vars,iter));
-        end
-
-        log_flag = 0;
-        if ~log_flag
-            plot(obj.setup.time,est_error_norm,'k','LineWidth',2);
-        else
-            % log 
-%                     set(gca, 'XScale', 'log')
-            set(gca, 'YScale', 'log')
-            plot(obj.setup.time,abs(est_error_norm),'r--','LineWidth',2);
-        end
-
-        set(gca,'fontsize', fontsize)
-        xlabel('time [s]')
-        ylabel('\delta x_norm') 
-    end
-    
-    %%%% plot params estimation error - norm%%%
-    if 1 || strcmp(obj.setup.DataType,'simulated')                
-        fig_count = fig_count+1;
-        figure(fig_count)
-        sgtitle('Estimation error params - norm')
-        hold on
-        grid on
-        box on
-
-        % plot
-        for iter=1:obj.setup.Niter
-            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_params,iter) - obj.init.X_est_runtime(1).val(obj.setup.plot_params,iter));
-        end
-
-        log_flag = 0;
-        if ~log_flag
-            plot(obj.setup.time,est_error_norm,'r','LineWidth',2);
-        else
-            % log 
-%                     set(gca, 'XScale', 'log')
-            set(gca, 'YScale', 'log')
-            plot(obj.setup.time,abs(est_error_norm),'b--','LineWidth',2);
-        end
-
-        set(gca,'fontsize', fontsize)
-        xlabel('time [s]')
-        ylabel('\delta x_norm') 
-    end
-
-    %%%% plot filters %%%%%            
-    fig_count = fig_count+1;
-    figure(fig_count)
-    sgtitle('Filters on measures')            
-    ax = zeros(1,3);
-    for k=1:obj.setup.J_nterm
-        
-        % number fo subplots depending on the Nterm
-        n_subplot = obj.setup.J_nterm;
-        
-        % indicize axes
-        ax_index = k;
-        ax(ax_index)=subplot(n_subplot,1,ax_index);                
-        
-        % plot
-        hold on
-        grid on
-        
-        for traj=1:obj.setup.Ntraj
-            for dim=obj.setup.dim_out_compare
-                y_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Y_full_story(traj).val(k,dim,:),size(obj.setup.time));
-                if strcmp(obj.setup.DataType,'simulated')
-                    ytrue_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Ytrue_full_story(traj).val(k,dim,:),size(obj.setup.time));
-                end
-                yhat_plot = obj.setup.J_temp_scale(k)*reshape(obj.init.Yhat_full_story(traj).val(k,dim,:),size(obj.setup.time));
-                if 1
-                    if strcmp(obj.setup.DataType,'simulated')
-                        plot(obj.setup.time,y_plot,'b--');
-                    end
-                    plot(obj.setup.time,yhat_plot,'r--','LineWidth',2);
-                    plot(obj.setup.time,y_plot,'k:','LineWidth',2);                            
-                else
-                    plot(obj.setup.time,abs(y_plot-yhat_plot));
-                    set(gca, 'YScale', 'log')
-                end
-            end                        
-        end    
-        if strcmp(obj.setup.DataType,'simulated')
-            legend('meas','estimation','target')
-        else
-            legend('meas','est')
-        end
-        
-        set(gca,'fontsize', fontsize)
-        ylabel(strcat('y_{filter}^',num2str(k)));
-        xlabel('simulation time [s]');
-        
-    end
-    linkaxes(ax,'x');
-    
+    end            
     
     %%%% plot windowed data %%%%            
     fig_count = fig_count+1;
@@ -337,6 +138,7 @@ function plot_general_calce(obj,varargin)
     xlabel('simulation time [s]');
     legend('meas','sampled')
     linkaxes(ax(1:n_subplot-1),'x');
+    
     %%% plot adaptive sampling            
     ax(n_subplot) = subplot(n_subplot,1,n_subplot);
     % frequency constraint
