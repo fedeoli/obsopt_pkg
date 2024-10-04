@@ -7,7 +7,7 @@
 % OUTPUT: params,out.obs
 % plot results for control design
 function plot_general(obj,varargin)
-    
+
     set(0,'DefaultFigureWindowStyle','docked');            
     
     fontsize = 20;
@@ -168,33 +168,33 @@ function plot_general(obj,varargin)
     end
     
     %%%% plot params estimation error - norm%%%
-    if 1 || strcmp(obj.setup.DataType,'simulated')                
-        fig_count = fig_count+1;
-        figure(fig_count)
-        sgtitle('Estimation error params - norm')
-        hold on
-        grid on
-        box on
-
-        % plot
-        for iter=1:obj.setup.Niter
-            est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_params,iter) - obj.init.X_est_runtime(1).val(obj.setup.plot_params,iter));
-        end
-
-        log_flag = 0;
-        if ~log_flag
-            plot(obj.setup.time,est_error_norm,'r','LineWidth',2);
-        else
-            % log 
-%                     set(gca, 'XScale', 'log')
-            set(gca, 'YScale', 'log')
-            plot(obj.setup.time,abs(est_error_norm),'b--','LineWidth',2);
-        end
-
-        set(gca,'fontsize', fontsize)
-        xlabel('time [s]')
-        ylabel('\delta x_norm') 
-    end
+%     if 1 || strcmp(obj.setup.DataType,'simulated')                
+%         fig_count = fig_count+1;
+%         figure(fig_count)
+%         sgtitle('Estimation error params - norm')
+%         hold on
+%         grid on
+%         box on
+% 
+%         % plot
+%         for iter=1:obj.setup.Niter
+%             est_error_norm(iter) = norm(obj.init.X(1).val(obj.setup.plot_params,iter) - obj.init.X_est_runtime(1).val(obj.setup.plot_params,iter));
+%         end
+% 
+%         log_flag = 0;
+%         if ~log_flag
+%             plot(obj.setup.time,est_error_norm,'r','LineWidth',2);
+%         else
+%             % log 
+% %                     set(gca, 'XScale', 'log')
+%             set(gca, 'YScale', 'log')
+%             plot(obj.setup.time,abs(est_error_norm),'b--','LineWidth',2);
+%         end
+% 
+%         set(gca,'fontsize', fontsize)
+%         xlabel('time [s]')
+%         ylabel('\delta x_norm') 
+%     end
 
     %%%% plot filters %%%%%            
     fig_count = fig_count+1;

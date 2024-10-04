@@ -12,7 +12,11 @@ function params = params_battery_simulink_calce
     %%%%%%%%%%% LOAD DATA OF A BATTERY EXPERIMENT %%%%%%%%%%%
 
     % loading input and output signal data
-    input_output_signal_filepath = '/data/CALCE/INR_18650/DST/SP2_25C_DST/11_05_2015_SP20-2_DST_50SOC.xlsx';
+    % '/data/CALCE/INR_18650/BJDST/SP2_25C_BJDST/11_12_2015_SP20-2_BJDST_80SOC.xlsx';
+    % '/data/CALCE/INR_18650/US06/SP2_25C_US06/11_11_2015_SP20-2_US06_80SOC.xlsx';
+    % '/data/CALCE/INR_18650/FUDS/SP2_25C_FUDS/11_06_2015_SP20-2_FUDS_80SOC.xlsx';
+    % '/data/CALCE/INR_18650/DST/SP2_25C_DST/11_05_2015_SP20-2_DST_80SOC.xlsx'
+    input_output_signal_filepath = '/data/CALCE/INR_18650/DST/SP2_25C_DST/11_05_2015_SP20-2_DST_80SOC.xlsx';
     [final_input_output_signal_data, params.out] = data_loader(input_output_signal_filepath);
     
     % loading ground truth SOC-OCV data
@@ -24,18 +28,17 @@ function params = params_battery_simulink_calce
     % input_data = load('data/ECM_parameters_updated.mat');
     input_data.OCV = transpose(final_soc_ocv.OCV);
     input_data.SOC = transpose(final_soc_ocv.SOC);
-    
-    input_data.R0 = [0.015,0.014167,0.013333,0.0125,0.011667,0.010833,0.010833,0.010833,0.010833,0.010833,0.01];
-    input_data.R1 = [0.024,0.022,0.02,0.018,0.016,0.014,0.014,0.014,0.014,0.014,0.008];
-    input_data.C1 = [10000,9000,8000,7000,6000,5000,5000,5000,5000,5000,2500];
-    
-    % R0_values = [0.089000,0.076597,0.072164,0.071013,0.070835,0.070937,0.071477,0.072694,0.074148,0.073950,0.068000];
-    % R1_values = [0.002700,0.023089,0.016769,0.012580,0.017430,0.025575,0.027914,0.021274,0.017695,0.053725,0.199700];
-    % C1_values = [1877.260,1257.901,933.547,914.623,1022.945,1041.227,862.591,640.071,936.119,2872.117,8277.880];
 
+    % initial parameters
+    input_data.R0 = [0.02, 0.02166, 0.02166, 0.02166, 0.02166, 0.02166, 0.02333, 0.025, 0.02667, 0.02833, 0.03];
+    input_data.R1 =  [0.004, 0.007, 0.007, 0.007, 0.007, 0.007, 0.008, 0.009, 0.01, 0.011, 0.012];
+    input_data.C1 = [1250, 2500, 2500, 2500, 2500, 2500, 3000, 3500, 4000, 4500, 5000];
+    
+    % for consistency
     params.input_data = input_data;
 
     % time
+    %                                    
     params.Ts = 1e0;
     params.time = final_input_output_signal_data.Step_Time_s_;
 
@@ -55,34 +58,9 @@ function params = params_battery_simulink_calce
     params.input_data.R0_nominal = params.input_data.R0.*(1+params.deltaModel*randn(1,npoints));
     params.input_data.R1_nominal = params.input_data.R1.*(1+params.deltaModel*randn(1,npoints));
     params.input_data.C1_nominal = params.input_data.C1.*(1+params.deltaModel*randn(1,npoints));    
-           
-    % SETUP THE EXPERIMENT  - Battery Capacity (converting Ampere-hour to Ampere-second)
-    params.InputAmplitude = -1;
-    params.C_n_h_nominal = 2.0027*abs(params.InputAmplitude);
-    params.C_n_nominal = params.C_n_h_nominal * 3600;         
-
-    % SETUP THE EXPERIMENT - generate modular HPPC
-    % define the input current module
-    % params.input_current_Ts = 1;        
-    % [HCCP, tspan, tspan_pos] = generate_HCCP(params.input_current_Ts,params.C_n_h_nominal);
-    % params.startpos = tspan_pos(1);
-    % params.stoppos = tspan_pos(end); 
-    % params.input_current = HCCP;    
-    % params.input_current_modular_period = params.stoppos-params.startpos;    
-    % params.input_current_modular_time = 0:params.input_current_modular_period;
-    % params.input_current_modular_time_dense = 0:params.input_current_Ts:params.input_current_modular_period;    
-    % params.input_current_modular = interp1(params.input_current_modular_time,params.input_current(params.startpos:params.stoppos),params.input_current_modular_time_dense);
-    % 
-    % % slow modular HPPC - dense realization
-    % params.time_slow = 1;
-    % params.input_current_modular_period_slown = params.input_current_modular_period*params.time_slow;
-    % params.input_current_modular_time_slown_dense = 0:params.input_current_Ts:params.input_current_modular_period_slown;
-    % for i=1:length(params.input_current_modular_time_dense)
-    %     params.input_current_modular_slown(params.time_slow*(i-1)+1:params.time_slow*(i-1)+params.time_slow) = params.input_current_modular(i);
-    % end    
-
+             
     % noise characteristics
-    noise = 1;
+    noise = 0;
     params.percNoise = noise*5e-2;
     params.NoisePwr = noise*5e-3;
 

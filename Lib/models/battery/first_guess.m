@@ -53,12 +53,23 @@ function params_out = first_guess(params,params_sim)
         x0 = params.X(traj).val(:,1);
         x0_nonopt = x_out(nonopt_vars,:);
         x0_opt = x0(opt_vars_curr);
+
+        if param == 1
+            tmp = polyfit(x_out(1,:),x_out(compare_vars_curr,:),Npoly+1);
+            old_Xest(update_vars(param,1:(Npoly+2))) = flip(tmp); 
+        else 
+            tmp = polyfit(x_out(1,:),x_out(compare_vars_curr,:),Npoly-1);
+            old_Xest(update_vars(param,1:(Npoly))) = flip(tmp); 
+            % tmp = polyfit(x_out(1,:),x_out(compare_vars_curr,:),Npoly+1);
+            % old_Xest(update_vars(param,1:(Npoly+2))) = flip(tmp); 
+        end
+        
     
         % solve the optimisation problem
     %     tmp = fminsearch(@(x)cost_function(obs,x,x0_nonopt,x_out(obs.setup.compare_vars,:),1), x0_opt, myoptioptions); 
-        tmp = polyfit(x_out(1,:),x_out(compare_vars_curr,:),Npoly-1);
+        % tmp = polyfit(x_out(1,:),x_out(compare_vars_curr,:),Npoly-1);
         
-        old_Xest(update_vars(param,1:(Npoly))) = flip(tmp); 
+        % old_Xest(update_vars(param,1:(Npoly))) = flip(tmp); 
     end        
     
     % obs.init
@@ -66,7 +77,7 @@ function params_out = first_guess(params,params_sim)
     params.cloud_X = x_out(1,:);
     
     % update params - init
-    update_vars_row = reshape(update_vars(:,1:(Npoly)),1,size(update_vars(:,1:(Npoly)),1)*size(update_vars(:,1:(Npoly)),2));
+    update_vars_row = reshape(update_vars(:,1:(Npoly+2)),1,size(update_vars(:,1:(Npoly+2)),1)*size(update_vars(:,1:(Npoly+2)),2));
     
     % if DT
     params.X(traj).val(update_vars_row,1) = old_Xest(update_vars_row);

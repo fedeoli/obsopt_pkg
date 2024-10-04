@@ -28,7 +28,7 @@ Ts = params_sim.Ts;
 
 % set initial and final time instant
 % remember to set the final time and sampling time accordingly to the data
-% that you measured
+% that you measured+
 t0 = params_sim.time(1);
 tend = params_sim.time(end);
 % uncomment to test the MHE with a single optimisation step
@@ -75,7 +75,7 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'simulated', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'simulated', 'optimise', 0, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
           'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [4 80 2 1 10 params.OutDim_compare], ...
           'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
@@ -96,7 +96,7 @@ t0 = tic;
 for i = 1:Niter
     
     % Display iteration step
-    if ((mod(i,100) == 0) || (i == 1))
+    if ((mod(i,1) == 0) || (i == 1))
         clc
         disp('MHE:')
         disp(['Iteration Number: ', num2str(obs.setup.time(i)),'/',num2str(obs.setup.time(Niter))])
