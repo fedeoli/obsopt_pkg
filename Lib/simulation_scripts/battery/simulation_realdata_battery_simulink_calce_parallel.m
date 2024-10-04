@@ -13,9 +13,6 @@ params_fast = params_battery_simulink_calce;
 params_sim = params_fast;
 clear params_fast
 
-% init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 30;
-
 % noise
 rng default
 
@@ -54,8 +51,9 @@ params_fast = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', par
 % options check directly the class constructor in obsopt.m
 
 % instance for SOC, R0, R1
+Nw_fast = 30;
 % NTs
-Nts_fast = 20;
+Nts_fast = 1;
 % filters
 [filter_fast, filterScale_fast, ~] = filter_define(Ts,Nts_fast);
 % terminal states
@@ -63,10 +61,10 @@ terminal_states_fast = params_fast.opt_vars;
 terminal_weights_fast = 1e0*ones(size(terminal_states_fast));
 
 % class instance
-obs_fast = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params_fast.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
-          'Nw', Nw, 'Nts', Nts_fast, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_fast, 'filters', filterScale_fast,'filterTF', filter_fast, ...
-          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states_fast, 'terminal_weights', terminal_weights_fast, 'terminal_normalise', 1, ...
+obs_fast = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params_fast.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+          'Nw', Nw_fast, 'Nts', Nts_fast, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_fast, 'filters', filterScale_fast,'filterTF', filter_fast, ...
+          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 20 2 1 1 0 0 params_fast.OutDim_compare], ...
+          'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states_fast, 'terminal_weights', terminal_weights_fast, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
 
 %%% SLOW OBSOPT %%%
@@ -80,6 +78,7 @@ params_slow = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', par
 % options check directly the class constructor in obsopt.m
 
 % instance for SOC, R0, R1
+Nw_slow = 30;
 % NTs
 Nts_slow = 100;
 % filters
@@ -87,12 +86,13 @@ Nts_slow = 100;
 % terminal states
 terminal_states_slow = params_slow.opt_vars;
 terminal_weights_slow = 1e0*ones(size(terminal_states_slow));
+terminal_weights_slow(1) = 5e1;
 
 % class instance
-obs_slow = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params_slow.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
-          'Nw', Nw, 'Nts', Nts_fast, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_slow, 'filters', filterScale_slow,'filterTF', filter_slow, ...
-          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states_slow, 'terminal_weights', terminal_weights_slow, 'terminal_normalise', 1, ...
+obs_slow = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params_slow.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
+          'Nw', Nw_slow, 'Nts', Nts_slow, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_slow, 'filters', filterScale_slow,'filterTF', filter_slow, ...
+          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 20 2 30 0.01 0 0 params_slow.OutDim_compare], ...
+          'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states_slow, 'terminal_weights', terminal_weights_slow, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
 
 
@@ -169,8 +169,8 @@ for i = 1:Niter
 
     % slow updates fast
     if mod(i,Nts_slow) == 0
-        obs_fast.init.X_est(traj).val(params_slow.opt_vars,max(1,i-Nts_slow):i) = obs_slow.init.X_est(traj).val(params_slow.opt_vars,max(1,i-Nts_slow):i);
-        obs_slow.init.X_est(traj).val(params_fast.opt_vars,max(1,i-Nts_fast):i) = obs_fast.init.X_est(traj).val(params_fast.opt_vars,max(1,i-Nts_fast):i);
+        obs_fast.init.X_est(traj).val(params_slow.opt_vars,max(1,i-Nw_slow*Nts_slow):i) = obs_slow.init.X_est(traj).val(params_slow.opt_vars,max(1,i-Nw_slow*Nts_slow):i);
+        obs_slow.init.X_est(traj).val(params_fast.opt_vars,max(1,i-Nw_fast*Nts_fast):i) = obs_fast.init.X_est(traj).val(params_fast.opt_vars,max(1,i-Nw_fast*Nts_fast):i);
     end
 
 end

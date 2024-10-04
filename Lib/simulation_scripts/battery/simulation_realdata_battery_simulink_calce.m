@@ -17,7 +17,7 @@ clear params
 
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
 Nw = 30;
-Nts = 1;
+Nts = 30;
 
 % noise
 rng default
@@ -62,7 +62,7 @@ params = model_init('Ts',Ts,'T0',[t0, tend],'noise',0, 'params_update', params_u
 terminal_states = params.opt_vars;
 terminal_weights = 1e0*ones(size(terminal_states));
 % SOC%
-% terminal_weights([1]) = 100;
+terminal_weights(1) = 5e1;
 % OCV %
 % terminal_weights([3 7 11]) = 1;
 % R0 %
@@ -76,10 +76,10 @@ terminal_weights = 1e0*ones(size(terminal_states));
 
 % create observer class instance. For more information on the setup
 % options check directly the class constructor in obsopt.m
-obs = obsopt('DataType', 'real', 'optimise', 0, 'MultiStart', params.multistart, 'J_normalise', 0, 'MaxOptTime', Inf, ... 
+obs = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw, 'Nts', Nts, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params, 'filters', filterScale,'filterTF', filter, ...
-          'Jdot_thresh',0.95,'MaxIter', 1, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [4 80 2 1 10 params.OutDim_compare], ...
-          'AdaptiveSampling',0, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
+          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 20 2 5 0.1 0 0 params.OutDim_compare], ...
+          'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states, 'terminal_weights', terminal_weights, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
 
 

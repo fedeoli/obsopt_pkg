@@ -149,9 +149,9 @@ function plot_general_calce(obj,varargin)
     % colormap jet
     % 
     % %%% single cwt
-    % fig_count = fig_count+1;
-    % figure(fig_count)
-    % cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);
+    fig_count = fig_count+1;
+    figure(fig_count)
+    cwt(y_meas,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);
             
     
 end

@@ -37,8 +37,8 @@ function params = params_battery_calce_fast(params_sim)
     params.Temperature = 313.15;
 
     % initial SOC
-    x10 = 0.5;
-    x20 = 0.05;    
+    x10 = 0.9;
+    x20 = 0.05;        
     
     params.eps = 1;        
     

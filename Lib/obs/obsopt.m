@@ -94,6 +94,8 @@ classdef obsopt < handle
                 obj.setup.plot_params = params.plot_params;
                                 
             else
+
+                % default dynamics
                 obj.setup.model = @(t,x,params) -2*x;
                 obj.setup.measure = @(x,params) x;
                 obj.setup.ode = @ode45;
@@ -103,6 +105,7 @@ classdef obsopt < handle
                 % the sample time previously set.
                 obj.setup.time = 0:obj.setup.Ts:10;
                 
+                % default output
                 obj.setup.dim_out = 1;
                 obj.setup.dim_state = 1;
                 
@@ -172,6 +175,9 @@ classdef obsopt < handle
             else
                 obj.setup.AdaptiveSampling = 0;
             end
+
+            % dafault wavelet setup. Check CWT method for info on the
+            % parameters
             obj.init.nfreqs = 2;            
             obj.init.freqs = zeros(obj.init.nfreqs,1);
             obj.init.wvname = 'amor';
@@ -187,16 +193,64 @@ classdef obsopt < handle
             % disabling the adaptive sampling
             if any(strcmp(varargin,'AdaptiveParams')) && (obj.setup.AdaptiveSampling)
                 pos = find(strcmp(varargin,'AdaptiveParams'));
-                tmp = varargin{pos+1};                         
-                obj.init.Fnyq = tmp(1);     % integer
+                tmp = varargin{pos+1};    
+
+                % The Adaptive sampling can work both with the signal
+                % richness metric eq. (3.23), and with the wavelet
+                % transform paragraph (3.53). Now we detail the wavelet
+                % parameters
+
+                % Nyquist frequency. Integer defining how far from the
+                % estimated bandwith we will consider frequencies in the
+                % wavelet
+                obj.init.Fnyq = tmp(1);     
+
+                % Length of the buffer considered for the wavelet
+                % transform. It's the N_{\Psi} parameter in eq. (3.32)
                 obj.init.Fbuflen = tmp(2);  % integer < Nw
+
+                % CWT will return a range of frequencies. You can decide to
+                % choose the minimum (1) or the maximum (2) as your
+                % bandwidth estimation. Clearly, max is the theoretical
+                % better choice, so it is the default. Min was left there
+                % after testing and legacy. Also, as it is multiplied by
+                % Fnyq, a proper parameter tweak can avoid messing up with
+                % the setup. Fselect is Fmax in eq. (3.32)
                 obj.init.Fselect = tmp(3);  % 1 = min 2 = max 
+
+                % Fsamp is computed in eq. (3.33a) with Fselect and Fnyq
+
+                % The wavelet buffer is considered equally sampled by FNts.
+                % The default (and best) choiche would be FNts=1, so to
+                % catch all the frequencial info in the signal. However,
+                % for specific cases, you could want to downsample the
+                % measurement a bit. For instance when there are different
+                % frequency scales to be considered. FNts is to be replaced
+                % with the 1 in eq. (3.33b), the first argument of the max
+                % computation. 
                 obj.init.FNts = tmp(4);
+
+                % What is the minimum frequency considered as an acceptable
+                % CWT output? CWT could return a meaningless Fmax=1e-5, so
+                % it is considered only if it is > Fmin
                 obj.init.Fmin = tmp(5);
+
+                % Adaptive sampling is considered only if the estimation
+                % error is over a certain threshold, which is this epsD, (epsilon Delta)
+                % Refer to eq. (3.23)
                 obj.init.epsD = tmp(6);
+
+                % Here you can decide either to use the signal richness
+                % Adaptive sampling (PE_flag = 1) or the wavelet one (PE_flag = 0)
                 obj.init.PE_flag = tmp(7);
+
+                % On which elements of the output measurements do you want
+                % to compute the wavelet? Currently, reliable tests have
+                % been done only on scalar output.
                 obj.init.wavelet_output_dim = tmp(8:end);
             else
+
+                % Default Adaptive sampling parameters
                 obj.init.FNts = 1;
                 obj.init.Fbuflen = 20;
                 obj.init.Fselect = 2;
@@ -1062,22 +1116,32 @@ classdef obsopt < handle
             
         end
         
-        % dJ_cond: function for the adaptive sampling
-        % test: try to work with wavelets
+        % dJ_cond: function for the adaptive sampling        
         % it will simply return the main frequencies of the current signal
-        function obj = dJ_cond_v5_function(obj)
+        function obj = adaptive_sampling_function(obj)
             
             % Wavelet adaptive
+
+            % The buffer is ready when 
+            %   1) wavelet are considered
+            %   2) We have past the FNs*Buflen samples
+            % If you want to use the adaptive with the signal richness
+            % switch the PE_flag check
             buffer_ready = (~obj.init.PE_flag)*(obj.init.ActualTimeIndex > obj.init.FNts*obj.init.Fbuflen);
+
+            % get the actual data
             buf_data = squeeze(obj.init.Y(obj.init.traj).val(1,:,:));
             y = obj.init.Y_full_story(obj.init.traj).val(1,:,obj.init.ActualTimeIndex);
+
+            % Here we compute the signal richness as in eq. (3.16)
             DiffTerm = diff(buf_data);
             VecTerm = vecnorm(DiffTerm,2,2);
             obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y'-buf_data(end,:));            
 
+            % Here we check if we're ready to do the adaptive sampling
             if buffer_ready && obj.setup.AdaptiveSampling                
 
-                % get current buffer - new
+                % get current buffer - the wavelet one
                 pos_hat = obj.init.ActualTimeIndex:-obj.init.FNts:(obj.init.ActualTimeIndex-obj.init.FNts*obj.init.Fbuflen);                
                 short_win_data = squeeze(obj.init.Y_full_story(obj.init.traj).val(1,obj.init.wavelet_output_dim,pos_hat));                
 
@@ -1085,20 +1149,23 @@ classdef obsopt < handle
                 short_win_data = reshape(short_win_data,numel(obj.init.wavelet_output_dim),numel(pos_hat));
                 buffer = vecnorm(short_win_data,2,1);                 
                                                                                 
-                % frequency constraint                                
-                %[WT, F] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv,'FrequencyLimits',obj.init.FLIMITS);                
+                % compute the wavelet transform                
                 [WT, ~] = cwt(buffer,obj.init.wvname,1/obj.setup.Ts,'VoicesPerOctave',obj.init.Nv);                
 
-
-                % real values
+                % get the frequency real values (they are imaginary from
+                % Fourier transform) and take the norm. This is a vector
+                % with all the frequencies indentifued in the buffer.
                 WT_real = real(WT);
                 WT_norm = vecnorm(WT_real,2,1);   
-                WT_norm_filt = movmean(WT_norm,5);                
-                %F = scal2frq(WT_norm_filt,'morl',obj.setup.Ts);
-                % find derivative
+                % We filter them with a moving average
+                WT_norm_filt = movmean(WT_norm,5);                                
+                % and we find the peaks, either them being related to the
+                % max or min. 
                 [WT_norm_peaks,pos_peaks] = findpeaks(WT_norm_filt);                
-                % set freqs
+
+                % Now we identify the max and min freq identified
                 if ~isempty(pos_peaks)
+                    
                     % pos max and min on the WT
                     [pos_max] = find(WT_norm_filt == max(WT_norm_peaks),1,'first');
                     [pos_min] = find(WT_norm_filt == min(WT_norm_peaks),1,'first');
@@ -1106,11 +1173,11 @@ classdef obsopt < handle
                     % store max min F
                     %obj.init.Fcwt_story(:,obj.init.ActualTimeIndex) = [F(pos_max) F(pos_min)];
 
-                    % pos max and min on the F
-                    % new                    
+                    % here we transform from rad/sec to Hz
                     F_def(1,1) = 2*pi*WT_norm_filt(pos_max);  %1 max
                     F_def(2,1) = 2*pi*WT_norm_filt(pos_min);  %2 min
                        
+                    % Thresholding with the Fmin
                     if min(F_def) < obj.init.Fmin
                         F_def = zeros(obj.init.nfreqs,1);
                     end
@@ -1124,13 +1191,18 @@ classdef obsopt < handle
                 obj.init.freqs = [obj.init.freqs zeros(obj.init.nfreqs,1)];
             end  
 
-            % PE adaptive
+            % If we selected the signal richness option, we proceed as from
+            % eq. (3.16)
             if obj.init.PE_flag
+
+                % get data
                 buf_data = squeeze(obj.init.Y(obj.init.traj).val(1,:,:));
                 y = reshape(obj.init.Y_full_story(obj.init.traj).val(1,:,obj.init.ActualTimeIndex),obj.init.params.OutDim,1);
                 DiffTerm = diff(buf_data);
                 VecTerm = vecnorm(DiffTerm,2,2);
                 obj.init.PE_story(:,obj.init.ActualTimeIndex) = sum(VecTerm) + norm(y-buf_data(end,:));
+
+                % just pad with freqs info
                 obj.init.freqs = [obj.init.freqs ones(obj.init.nfreqs,1)];
             end
 
@@ -1226,35 +1298,45 @@ classdef obsopt < handle
                 end
             end            
             
-            obj = obj.dJ_cond_v5_function();             
+            % Call the adaptive sampling function. It will set either the
+            % signal richness or the wavelet freqs
+            obj = obj.adaptive_sampling_function();
+
             % define selcted freq: freq_sel=1 MAX freq_sel=2 MIN
             freq_sel = obj.init.Fselect;
+
             % define bound on freq (at least 2 due to Nyquist)
             freq_bound = obj.init.Fnyq;
+
             % set NtsVal depending on freqs
             if obj.setup.AdaptiveSampling
-                % define freq on which calibrate the sampling time
 
+                % define the last estimation error
                 lasterr = nonzeros(squeeze(obj.init.Y(obj.init.traj).val(1,:,:))) - nonzeros(squeeze(obj.init.Yhat_full_story(obj.init.traj).val(1,:,nonzeros(obj.init.Y_space))));
                 if ~isempty(lasterr)
                     lasterr = vecnorm(lasterr);
                 else
                     lasterr = Inf;
                 end
+                
+                % store
                 obj.init.lasterror_story(obj.init.traj).val(obj.init.ActualTimeIndex) = lasterr;
 
                 % here with wavelets
                 if (~obj.init.PE_flag)
+
+                    % if I'm above the epsilon Delta, I check the sampling
                     if (lasterr > obj.init.epsD)                        
+                        % Here we implement eq. (3.32-3.331-3.33b)
                         freq = freq_bound*obj.init.freqs(freq_sel,end); % Hz
                         Ts_wv = 1/(freq); % s
-                        distance_min = max(1,ceil(Ts_wv/obj.setup.Ts));
+                        distance_min = max(obj.init.FNts,ceil(Ts_wv/obj.setup.Ts));
                     else
                         distance_min = Inf;
                     end
                 end
 
-                % here with PE
+                % here with signal richness
                 if (obj.init.PE_flag)
                     if (obj.init.PE_story(obj.init.ActualTimeIndex) >= freq_bound) && (lasterr > obj.init.epsD)
                         distance_min = distance;
@@ -1263,14 +1345,16 @@ classdef obsopt < handle
                     end
                 end
 
+                % If no freqs were set, don't sample
                 if ~any(obj.init.freqs(:,end)) 
-                    distance_min = Inf;%obj.setup.NtsVal(NtsPos); 
-                else
-                    a = 1;
+                    distance_min = Inf;                
                 end
+
+                % store the dmin
                 obj.init.dmin_story(obj.init.ActualTimeIndex) = distance_min;
 
             else
+                % as expected from Nts
                 distance_min = obj.setup.NtsVal(NtsPos);
             end
 
