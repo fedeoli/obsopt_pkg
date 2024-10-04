@@ -14,7 +14,7 @@ params_sim = params_fast;
 clear params_fast
 
 % init observer buffer (see https://doi.org/10.48550/arXiv.2204.09359)
-Nw = 30;
+% Nw = 30;
 
 % noise
 rng default
@@ -68,7 +68,7 @@ terminal_weights_fast = 1e0*ones(size(terminal_states_fast));
 % class instance
 obs_fast = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params_fast.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw_fast, 'Nts', Nts_fast, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_fast, 'filters', filterScale_fast,'filterTF', filter_fast, ...
-          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 20 2 1 1 0 0 params_fast.OutDim_compare], ...
+          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 20 2 5 1 0 0 params_fast.OutDim_compare], ...
           'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states_fast, 'terminal_weights', terminal_weights_fast, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
 
@@ -102,7 +102,7 @@ terminal_weights_slow(1) = 5e1;
 % class instance
 obs_slow = obsopt('DataType', 'real', 'optimise', 1, 'MultiStart', params_slow.multistart, 'J_normalise', 1, 'MaxOptTime', Inf, ... 
           'Nw', Nw_slow, 'Nts', Nts_slow, 'ode', ode, 'PE_maxiter', 0, 'WaitAllBuffer', 0, 'params',params_slow, 'filters', filterScale_slow,'filterTF', filter_slow, ...
-          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 20 2 30 0.01 0 0 params_slow.OutDim_compare], ...
+          'Jdot_thresh',0.95,'MaxIter', 2, 'Jterm_store', 1, 'AlwaysOpt', 1 , 'print', 0 , 'SafetyDensity', Inf, 'AdaptiveParams', [10 20 2 50 0.001 0 0 params_slow.OutDim_compare], ...
           'AdaptiveSampling',1, 'FlushBuffer', 1, 'opt', @fminsearchcon, 'terminal', 1, 'terminal_states', terminal_states_slow, 'terminal_weights', terminal_weights_slow, 'terminal_normalise', 1, ...
           'ConPos', [], 'LBcon', [], 'UBcon', [],'NONCOLcon',@nonlcon_fcn,'Bounds', 1,'BoundsPos',[1 4 5],'BoundsValLow',[1e-3 1e-3 1e-3],'BoundsValUp',[1 1e3 1e3]);
 
@@ -210,8 +210,8 @@ obs_slow.init.X.val(6,:) = interp1(params_sim.input_data.SOC,params_sim.input_da
 obs_slow.init.Ytrue_full_story.val = zeros(obs_fast.setup.Nfilt,params_fast.OutDim,params_fast.Niter);
 obs_slow.init.Ytrue_full_story.val(1,1,:) = params_sim.out.simout.ECM_Vb.Data(1:tend+1)';
 
-obs_fast.init.Nw_Nts = Nts_fast*Nw;
-obs_slow.init.Nw_Nts = Nts_slow*Nw;
+obs_fast.init.Nw_Nts = Nts_fast*Nw_fast;
+obs_slow.init.Nw_Nts = Nts_slow*Nw_slow;
 
 
 % same ground truth for obs_slow
